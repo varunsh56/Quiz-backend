@@ -10,7 +10,6 @@ import attemptRoutes from './routes/attempts.js';
 import reportRoutes from './routes/reports.js';
 import errorHandler from './middleware/errorHandler.js';
 import quizRoutes from './routes/quizzes.js';
-
 const app = express();
 app.use(cors());
 app.use(express.json());
