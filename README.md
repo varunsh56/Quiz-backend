@@ -52,7 +52,7 @@ JWT_EXPIRES_IN=7d
 
 3️⃣ Start Services with Docker
 
-docker-compose up --build -d 
+docker-compose up --build -d
 
 This will:
 
@@ -77,9 +77,9 @@ npm run dev
 Server will be live at:
 http://localhost:4000
 
-# API Documentation  
-Swagger API docs are available at [http://localhost:4000/api-docs/#/](http://localhost:4000/api-docs/#/).  
+# API Documentation
 
+Swagger API docs are available at [http://localhost:4000/api-docs/#/](http://localhost:4000/api-docs/#/).
 
 🔑 API Authentication
 
@@ -95,12 +95,12 @@ curl -X POST http://localhost:4000/api/attempts/submit \
  -H "Authorization: Bearer $USER_TOKEN" \
  -H "Content-Type: application/json" \
  -d '{
-   "attempt_id": 123,
-   "answers": [
-     {"question_id": 1, "selected_index": 0},
-     {"question_id": 2, "selected_index": 2}
-   ]
- }'
+"attempt_id": 123,
+"answers": [
+{"question_id": 1, "selected_index": 0},
+{"question_id": 2, "selected_index": 2}
+]
+}'
 
 End Quiz Attempt
 
@@ -110,17 +110,17 @@ curl -X POST http://localhost:4000/api/attempts/end \
  -d '{"attempt_id": 123}'
 
 🧩 Available Routes Overview
-| Method | Endpoint               | Description            | Auth Required |
+| Method | Endpoint | Description | Auth Required |
 | ------ | ---------------------- | ---------------------- | ------------- |
-| POST   | `/api/auth/register`   | Register new user      | ❌             |
-| POST   | `/api/auth/login`      | Login & get token      | ❌             |
-| GET    | `/api/users`           | Get all users          | ✅             |
-| GET    | `/api/skills`          | List all skills        | ✅             |
-| GET    | `/api/questions/:id`   | Get question by ID     | ✅             |
-| POST   | `/api/attempts/start`  | Start a quiz attempt   | ✅             |
-| POST   | `/api/attempts/submit` | Submit attempt answers | ✅             |
-| POST   | `/api/attempts/end`    | End a quiz attempt     | ✅             |
-| GET    | `/api/reports/:id`     | Get report for attempt | ✅             |
+| POST | `/api/auth/register` | Register new user | ❌ |
+| POST | `/api/auth/login` | Login & get token | ❌ |
+| GET | `/api/users` | Get all users | ✅ |
+| GET | `/api/skills` | List all skills | ✅ |
+| GET | `/api/questions/:id` | Get question by ID | ✅ |
+| POST | `/api/attempts/start` | Start a quiz attempt | ✅ |
+| POST | `/api/attempts/submit` | Submit attempt answers | ✅ |
+| POST | `/api/attempts/end` | End a quiz attempt | ✅ |
+| GET | `/api/reports/:id` | Get report for attempt | ✅ |
 
 📦 Database Schema
 
@@ -129,8 +129,7 @@ Here’s the high-level ERD and table details:
 
 🗺️ Entity-Relationship Diagram (ERD)
 
-
-```mermaid
+````mermaid
 erDiagram
     USERS ||--o{ QUIZZES : has
     QUIZZES ||--o{ QUIZ_QUESTIONS : includes
@@ -139,7 +138,7 @@ erDiagram
     QUIZZES ||--o{ QUIZ_ATTEMPTS : has
     QUIZ_ATTEMPTS ||--o{ QUIZ_ANSWERS : contains
 
-```` ``` ````
+` ``` `
 
 
 📝 Table Breakdown
@@ -246,3 +245,4 @@ Data Integrity: Foreign key constraints with proper CASCADE or SET NULL policies
 
 Extensible: Easy to add tags, question difficulty levels, or analytics without breaking schema.
 
+````
