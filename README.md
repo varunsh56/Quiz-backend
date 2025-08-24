@@ -130,6 +130,7 @@ Here’s the high-level ERD and table details:
 🗺️ Entity-Relationship Diagram (ERD)
 
 Users ───< Quizzes ───< Quiz_Questions >─── Questions >─── Skills
+
    │            │
    │            └──< Quiz_Attempts ───< Quiz_Answers
 
