@@ -127,19 +127,6 @@ curl -X POST http://localhost:4000/api/attempts/end \
 The project uses MySQL (via Knex.js migrations) with a clean, normalized design to handle users, quizzes, questions, attempts, and answers.
 Here’s the high-level ERD and table details:
 
-🗺️ Entity-Relationship Diagram (ERD)
-
-````mermaid
-erDiagram
-    USERS ||--o{ QUIZZES : has
-    QUIZZES ||--o{ QUIZ_QUESTIONS : includes
-    QUIZ_QUESTIONS }o--|| QUESTIONS : references
-    QUESTIONS }o--|| SKILLS : belongs_to
-    QUIZZES ||--o{ QUIZ_ATTEMPTS : has
-    QUIZ_ATTEMPTS ||--o{ QUIZ_ANSWERS : contains
-
-` ``` `
-
 
 📝 Table Breakdown
 
