@@ -77,6 +77,10 @@ npm run dev
 Server will be live at:
 http://localhost:4000
 
+# API Documentation  
+Swagger API docs are available at [http://localhost:4000/api-docs/#/](http://localhost:4000/api-docs/#/).  
+
+
 🔑 API Authentication
 
 All protected routes require a Bearer Token:
