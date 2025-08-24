@@ -139,6 +139,8 @@ erDiagram
     QUIZZES ||--o{ QUIZ_ATTEMPTS : has
     QUIZ_ATTEMPTS ||--o{ QUIZ_ANSWERS : contains
 
+```` ``` ````
+
 
 📝 Table Breakdown
 
