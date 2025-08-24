@@ -1,114 +1,138 @@
-import express from 'express';
-import knex from '../db/knex.js';
-import { authMiddleware, requireRole } from '../middleware/auth.js';
+export async function up(knex) {
+  // users
+  await knex.schema.createTable("users", (t) => {
+    t.increments("id").primary();
+    t.string("name").notNullable();
+    t.string("email").notNullable().unique();
+    t.string("password").notNullable();
+    t.enum("role", ["user", "admin"]).notNullable();
+    t.timestamp("created_at").defaultTo(knex.fn.now());
+    t.timestamp("updated_at").defaultTo(knex.fn.now());
+  });
 
-const router = express.Router();
+  // skills
+  await knex.schema.createTable("skills", (t) => {
+    t.increments("id").primary();
+    t.string("name").notNullable().unique();
+    t.text("description");
+    t.timestamp("created_at").defaultTo(knex.fn.now());
+  });
 
-/**
- * GET /reports/user/:userId
- * User-wise performance: list attempts + average score
- * Optional query params: ?quizId=1
- */
-router.get('/user/:userId', authMiddleware, requireRole('admin'), async (req, res, next) => {
-  try {
-    const { userId } = req.params;
-    const { quizId } = req.query;
+  // questions
+  await knex.schema.createTable("questions", (t) => {
+    t.increments("id").primary();
+    t
+      .integer("skill_id")
+      .unsigned()
+      .notNullable()
+      .references("id")
+      .inTable("skills")
+      .onDelete("CASCADE");
+    t.text("question").notNullable();
+    t.json("options").notNullable();
+    t.integer("correct_index").notNullable();
+    t.integer("difficulty").defaultTo(1);
+    t.timestamp("created_at").defaultTo(knex.fn.now());
+  });
 
-    let query = knex('quiz_attempts')
-      .where({ user_id: userId })
-      .whereNotNull('finished_at'); // only completed attempts
+  // quizzes
+  await knex.schema.createTable("quizzes", (t) => {
+    t.increments("id").primary();
+    t.string("title").notNullable();
+    t.text("description");
+    t
+      .integer("created_by")
+      .unsigned()
+      .nullable()
+      .references("id")
+      .inTable("users")
+      .onDelete("SET NULL");
+    t.integer("time_limit_minutes").nullable();
+    t.timestamp("created_at").defaultTo(knex.fn.now());
+  });
 
-    if (quizId) query = query.andWhere({ quiz_id: quizId });
+  // quiz_questions
+  await knex.schema.createTable("quiz_questions", (t) => {
+    t.increments("id").primary();
+    t
+      .integer("quiz_id")
+      .unsigned()
+      .notNullable()
+      .references("id")
+      .inTable("quizzes")
+      .onDelete("CASCADE");
+    t
+      .integer("question_id")
+      .unsigned()
+      .notNullable()
+      .references("id")
+      .inTable("questions")
+      .onDelete("CASCADE");
+    t.integer("position").defaultTo(0);
+    t.unique(["quiz_id", "question_id"]);
+  });
 
-    const attempts = await query.orderBy('started_at', 'desc');
+  // quiz_attempts
+  await knex.schema.createTable("quiz_attempts", (t) => {
+    t.increments("id").primary();
+    t
+      .integer("user_id")
+      .unsigned()
+      .notNullable()
+      .references("id")
+      .inTable("users")
+      .onDelete("CASCADE");
+    t
+      .integer("quiz_id")
+      .unsigned()
+      .nullable()
+      .references("id")
+      .inTable("quizzes")
+      .onDelete("SET NULL");
+    t.timestamp("started_at").defaultTo(knex.fn.now());
+    t.timestamp("finished_at");
+    t.integer("total_score").defaultTo(0);
+    t.json("meta");
+  });
 
-    const avg = await knex('quiz_attempts')
-      .where({ user_id: userId })
-      .modify(qb => {
-        if (quizId) qb.andWhere({ quiz_id: quizId });
-      })
-      .whereNotNull('finished_at')
-      .avg('total_score as avg_score')
-      .first();
+  // quiz_answers
+  await knex.schema.createTable("quiz_answers", (t) => {
+    t.increments("id").primary();
+    t
+      .integer("attempt_id")
+      .unsigned()
+      .notNullable()
+      .references("id")
+      .inTable("quiz_attempts")
+      .onDelete("CASCADE");
+    t
+      .integer("question_id")
+      .unsigned()
+      .notNullable()
+      .references("id")
+      .inTable("questions")
+      .onDelete("CASCADE");
+    t.integer("selected_index").nullable();
+    t.integer("score").defaultTo(0);
+    t.timestamp("answered_at").defaultTo(knex.fn.now());
+  });
 
-    res.json({ attempts, avg: avg?.avg_score || 0 });
-  } catch (err) {
-    next(err);
-  }
-});
+  // Indexes for performance
+  await knex.schema.table("quiz_attempts", (t) => {
+    t.index(["user_id", "started_at"]);
+  });
+  await knex.schema.table("quiz_answers", (t) => {
+    t.index(["question_id"]);
+  });
+}
 
-/**
- * GET /reports/skill-gap
- * Skill gap analysis: average score per skill
- * Optional: ?userId=1&quizId=2&from=YYYY-MM-DD&to=YYYY-MM-DD
- */
-router.get('/skill-gap', authMiddleware, requireRole('admin'), async (req, res, next) => {
-  try {
-    const { userId, quizId, from, to } = req.query;
-
-    let q = knex('quiz_answers')
-      .join('questions', 'quiz_answers.question_id', 'questions.id')
-      .join('quiz_attempts', 'quiz_answers.attempt_id', 'quiz_attempts.id')
-      .select('questions.skill_id')
-      .avg('quiz_answers.score as avg_score')
-      .groupBy('questions.skill_id')
-      .whereNotNull('quiz_attempts.finished_at');
-
-    if (userId) q = q.where('quiz_attempts.user_id', userId);
-    if (quizId) q = q.where('quiz_attempts.quiz_id', quizId);
-    if (from) q = q.where('quiz_attempts.started_at', '>=', from);
-    if (to) q = q.where('quiz_attempts.finished_at', '<=', to);
-
-    const rows = await q;
-
-    // Fetch skill names
-    const skillIds = rows.map(r => r.skill_id);
-    const skills = await knex('skills')
-      .whereIn('id', skillIds)
-      .select('id', 'name');
-
-    const skillMap = {};
-    skills.forEach(s => { skillMap[s.id] = s.name; });
-
-    const result = rows.map(r => ({
-      skill_id: r.skill_id,
-      skill: skillMap[r.skill_id] || null,
-      avg_score: parseFloat(r.avg_score)
-    }));
-
-    res.json(result);
-  } catch (err) {
-    next(err);
-  }
-});
-
-/**
- * GET /reports/time-series
- * Attempts over time with avg score
- * Optional: ?range=7d&quizId=1
- */
-router.get('/time-series', authMiddleware, requireRole('admin'), async (req, res, next) => {
-  try {
-    const { range = '7d', quizId } = req.query;
-    const days = range.endsWith('d') ? parseInt(range.slice(0, -1)) : 7;
-
-    let q = knex('quiz_attempts')
-      .where('started_at', '>=', knex.raw(`DATE_SUB(NOW(), INTERVAL ? DAY)`, [days]))
-      .whereNotNull('finished_at');
-
-    if (quizId) q = q.andWhere({ quiz_id: quizId });
-
-    const rows = await q
-      .select(knex.raw(`DATE(started_at) as date`))
-      .avg('total_score as avg_score')
-      .count('* as attempts')
-      .groupByRaw('DATE(started_at)')
-      .orderBy('date', 'asc');
-
-    res.json(rows);
-  } catch (err) {
-    next(err);
-  }
-});
-
-export default router;
+export async function down(knex) {
+  // Drop in reverse order of dependencies
+  await knex.schema.dropTableIfExists("quiz_answers");
+  await knex.schema.dropTableIfExists("quiz_attempts");
+  await knex.schema.dropTableIfExists("quiz_questions");
+  await knex.schema.dropTableIfExists("quizzes");
+  await knex.schema.dropTableIfExists("questions");
+  await knex.schema.dropTableIfExists("skills");
+  await knex.schema.dropTableIfExists("users");
+}
