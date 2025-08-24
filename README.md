@@ -129,10 +129,16 @@ Here’s the high-level ERD and table details:
 
 🗺️ Entity-Relationship Diagram (ERD)
 
-Users ───< Quizzes ───< Quiz_Questions >─── Questions >─── Skills
 
-   │            │
-   │            └──< Quiz_Attempts ───< Quiz_Answers
+```mermaid
+erDiagram
+    USERS ||--o{ QUIZZES : has
+    QUIZZES ||--o{ QUIZ_QUESTIONS : includes
+    QUIZ_QUESTIONS }o--|| QUESTIONS : references
+    QUESTIONS }o--|| SKILLS : belongs_to
+    QUIZZES ||--o{ QUIZ_ATTEMPTS : has
+    QUIZ_ATTEMPTS ||--o{ QUIZ_ANSWERS : contains
+
 
 📝 Table Breakdown
 
